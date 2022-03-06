@@ -2,7 +2,7 @@
 
 *          Lab Section: 23
 
- *         Assignment: Custom Lab Project Demo Video #1
+ *         Assignment: Custom Lab Project Demo Video #2
 
  *         Exercise Description: [optional - include for your own benefit]
 
@@ -161,6 +161,8 @@ int TickFct_MIC(int state) {
           delay(1000); //figure out better method than this for how to get LCD to stay on for a bit once this is triggered
           //maybe can do
           //tasks[0].period = 1000;
+          //OR I can just set a shared bool variable to be true here and false in the else statement below.
+          //Then in a separate LIGHT_LED task, I can have maybe a 1000ms period that the LED lights up when this shared bool variable goes true.
         }
         else {
           digitalWrite(ledPin, LOW);
@@ -168,9 +170,9 @@ int TickFct_MIC(int state) {
         }
         
 
-        micLevel = analogRead(micSensor_level);
+        //micLevel = analogRead(micSensor_level); //uncomment after below testing to revert
         //micLevel = map(micLevel, 0, 700, 0, 10);
-        Serial.println(micLevel);
+        //Serial.println(micLevel); //uncomment after below testing to revert
 
         /*
         if (micLevel > 110) {
@@ -181,6 +183,29 @@ int TickFct_MIC(int state) {
         }
         */
         
+        /*
+        //Testing with getting mic level values
+        int sum = 0;
+        int measurements = 128;
+        for (int i = 0; i < measurements; ++i) {
+          micLevel = analogRead(micSensor_level);
+          sum += micLevel;
+        }
+        micLevel = sum / measurements;
+        Serial.print("Sound Level: ");
+        Serial.println(micLevel - 38);
+        */
+
+        int sensor_value = 0;
+        int threshold = 509;
+        int abs_value = 0;
+        int ledCount = 10;
+
+        sensor_value = analogRead(micSensor_level);
+        abs_value = abs(sensor_value - threshold);
+        int ledLevel = map(abs_value, 0, (1024 - threshold), 0, ledCount);
+        Serial.print("ledLevel: ");
+        Serial.println(ledLevel);
     break;
     
     
