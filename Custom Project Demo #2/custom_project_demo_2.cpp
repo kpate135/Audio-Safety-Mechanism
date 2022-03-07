@@ -33,6 +33,10 @@ int ledPin = 3;
 int micSensor_level = A0; //analog gives real-time voltage signal
 int micSensor_intensity = 11; //digital gives LOW or HIGH sound intensity
 
+int buzzer = 9;
+bool buzzerEnabled = true; //true for now, later implement menu within nokia 5110 lcd to toggle buzzerEnabled.
+bool buzzer_threshold_reached = false;
+
 bool intensityValue = false;
 int micLevel = 0;
 
@@ -43,12 +47,14 @@ typedef struct task {
   int (*TickFct)(int);
 } task;
 
-const unsigned short tasksNum = 1;
+const unsigned short tasksNum = 2;
 task tasks[tasksNum];
 
 enum MIC_States {MIC_START, MIC_CHECK} state;
 int TickFct_MIC(int state);
 
+enum BUZZER_STATES {BUZZER_START, BUZZER_OFF, BUZZER_ON};
+int TickFct_BUZZER(int state);
 
 void setup() {
   // put your setup code here, to run once:
@@ -66,6 +72,7 @@ void setup() {
   pinMode(micSensor_level, INPUT);
   pinMode(micSensor_intensity, INPUT);
   pinMode(ledPin, OUTPUT);
+  pinMode(buzzer, OUTPUT);
   
   Serial.begin(9600);
   
@@ -75,7 +82,12 @@ void setup() {
   tasks[i].elapsedTime = 0;
   tasks[i].TickFct = &TickFct_MIC;
   i++;
-  
+  tasks[i].state = BUZZER_START;
+  tasks[i].period = 1000;
+  tasks[i].elapsedTime = 0;
+  tasks[i].TickFct = &TickFct_BUZZER;
+  i++;
+
 }
 
 /*                
@@ -158,6 +170,7 @@ int TickFct_MIC(int state) {
         
         if (intensityValue == HIGH) {
           digitalWrite(ledPin, HIGH);
+          buzzer_threshold_reached = true;
           delay(1000); //figure out better method than this for how to get LCD to stay on for a bit once this is triggered
           //maybe can do
           //tasks[0].period = 1000;
@@ -166,13 +179,14 @@ int TickFct_MIC(int state) {
         }
         else {
           digitalWrite(ledPin, LOW);
+          buzzer_threshold_reached = false;
           //tasks[0].period = 50;
         }
         
 
-        //micLevel = analogRead(micSensor_level); //uncomment after below testing to revert
+        micLevel = analogRead(micSensor_level); //uncomment after below testing to revert
         //micLevel = map(micLevel, 0, 700, 0, 10);
-        //Serial.println(micLevel); //uncomment after below testing to revert
+        Serial.println(micLevel); //uncomment after below testing to revert
 
         /*
         if (micLevel > 110) {
@@ -196,6 +210,7 @@ int TickFct_MIC(int state) {
         Serial.println(micLevel - 38);
         */
 
+        /*
         int sensor_value = 0;
         int threshold = 509;
         int abs_value = 0;
@@ -206,8 +221,52 @@ int TickFct_MIC(int state) {
         int ledLevel = map(abs_value, 0, (1024 - threshold), 0, ledCount);
         Serial.print("ledLevel: ");
         Serial.println(ledLevel);
+        */
     break;
     
+    
+    default:
+      break;
+  }
+  return state;
+}
+
+int TickFct_BUZZER(int state) {
+  switch(state){ // Transition States
+    case BUZZER_START:
+        state = BUZZER_OFF;
+    break;
+
+    case BUZZER_OFF:
+        if (buzzer_threshold_reached && buzzerEnabled) {
+          state = BUZZER_ON;
+        }
+        else {
+          state = BUZZER_OFF;
+        }
+    break;
+
+    case BUZZER_ON:
+      state = BUZZER_OFF;
+    break;
+    
+    default:
+      break;
+  }
+
+
+  switch(state){ // Action States
+    case BUZZER_START:
+      state = BUZZER_OFF;
+    break;
+
+    case BUZZER_OFF:
+      noTone(buzzer);
+    break;
+
+    case BUZZER_ON:
+      tone(buzzer, 200);
+    break;
     
     default:
       break;
