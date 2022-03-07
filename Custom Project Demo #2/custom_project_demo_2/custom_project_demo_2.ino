@@ -33,9 +33,12 @@ int ledPin = 3;
 int micSensor_level = A0; //analog gives real-time voltage signal
 int micSensor_intensity = 11; //digital gives LOW or HIGH sound intensity
 
+int ledTimer = 0;
+
 int buzzer = 9;
 bool buzzerEnabled = true; //true for now, later implement menu within nokia 5110 lcd to toggle buzzerEnabled.
-bool buzzer_threshold_reached = false;
+bool threshold_reached = false;
+bool buzzer_threshold = false;
 
 bool intensityValue = false;
 int micLevel = 0;
@@ -47,11 +50,14 @@ typedef struct task {
   int (*TickFct)(int);
 } task;
 
-const unsigned short tasksNum = 2;
+const unsigned short tasksNum = 3;
 task tasks[tasksNum];
 
 enum MIC_States {MIC_START, MIC_CHECK} state;
 int TickFct_MIC(int state);
+
+enum LED_States {LED_START, LED_OFF, LED_ON};
+int TickFct_LED(int state);
 
 enum BUZZER_STATES {BUZZER_START, BUZZER_OFF, BUZZER_ON};
 int TickFct_BUZZER(int state);
@@ -82,11 +88,17 @@ void setup() {
   tasks[i].elapsedTime = 0;
   tasks[i].TickFct = &TickFct_MIC;
   i++;
+  tasks[i].state = LED_START;
+  tasks[i].period = 50;
+  tasks[i].elapsedTime = 0;
+  tasks[i].TickFct = &TickFct_LED;
+  i++;
   tasks[i].state = BUZZER_START;
   tasks[i].period = 1000;
   tasks[i].elapsedTime = 0;
   tasks[i].TickFct = &TickFct_BUZZER;
   i++;
+
 
 }
 
@@ -169,33 +181,17 @@ int TickFct_MIC(int state) {
         Serial.println(intensityValue);
         
         if (intensityValue == HIGH) {
-          digitalWrite(ledPin, HIGH);
-          buzzer_threshold_reached = true;
-          delay(1000); //figure out better method than this for how to get LCD to stay on for a bit once this is triggered
-          //maybe can do
-          //tasks[0].period = 1000;
-          //OR I can just set a shared bool variable to be true here and false in the else statement below.
-          //Then in a separate LIGHT_LED task, I can have maybe a 1000ms period that the LED lights up when this shared bool variable goes true.
+          threshold_reached = true;
+          buzzer_threshold = true;
         }
         else {
-          digitalWrite(ledPin, LOW);
-          buzzer_threshold_reached = false;
-          //tasks[0].period = 50;
+          threshold_reached = false;
         }
         
 
         micLevel = analogRead(micSensor_level); //uncomment after below testing to revert
         //micLevel = map(micLevel, 0, 700, 0, 10);
         Serial.println(micLevel); //uncomment after below testing to revert
-
-        /*
-        if (micLevel > 110) {
-          digitalWrite(ledPin, HIGH);
-        }
-        else {
-          digitalWrite(ledPin, LOW);
-        }
-        */
         
         /*
         //Testing with getting mic level values
@@ -231,6 +227,58 @@ int TickFct_MIC(int state) {
   return state;
 }
 
+int TickFct_LED(int state) {
+  switch(state){ // Transition States
+    case LED_START:
+        state = LED_OFF;
+    break;
+
+    case LED_OFF:
+        if (threshold_reached) {
+          digitalWrite(ledPin, HIGH);
+          ledTimer = 0;
+          state = LED_ON;
+        }
+        else {
+          digitalWrite(ledPin, LOW);
+          state = LED_OFF;
+        }
+    break;
+
+    case LED_ON:
+      if (ledTimer <= 20) {
+        state = LED_ON;
+      }
+      else{
+        digitalWrite(ledPin, LOW);
+        state = LED_OFF;
+      }
+    break;
+    
+    default:
+      break;
+  }
+
+
+  switch(state){ // Action States
+    case LED_START:
+      
+    break;
+
+    case LED_OFF:
+      
+    break;
+
+    case LED_ON:
+      ++ledTimer;
+    break;
+    
+    default:
+      break;
+  }
+  return state;
+}
+
 int TickFct_BUZZER(int state) {
   switch(state){ // Transition States
     case BUZZER_START:
@@ -238,7 +286,7 @@ int TickFct_BUZZER(int state) {
     break;
 
     case BUZZER_OFF:
-        if (buzzer_threshold_reached && buzzerEnabled) {
+        if (buzzer_threshold && buzzerEnabled) {
           state = BUZZER_ON;
         }
         else {
@@ -247,6 +295,7 @@ int TickFct_BUZZER(int state) {
     break;
 
     case BUZZER_ON:
+      buzzer_threshold = false;
       state = BUZZER_OFF;
     break;
     
@@ -257,7 +306,7 @@ int TickFct_BUZZER(int state) {
 
   switch(state){ // Action States
     case BUZZER_START:
-      state = BUZZER_OFF;
+      
     break;
 
     case BUZZER_OFF:
