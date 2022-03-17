@@ -2,7 +2,7 @@
 
 *          Lab Section: 23
 
- *         Assignment: Custom Lab Project Demo Video #2
+ *         Assignment: Custom Lab Project Final Demo Video 
 
  *         Exercise Description: [optional - include for your own benefit]
 
@@ -29,7 +29,17 @@ int a = 0x00;
 int a0, a1, a2, a3, a4, a5, a6, a7;
 */
 
-int ledPin = 3;
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_PCD8544.h>
+
+// Declare LCD object for software SPI
+// Adafruit_PCD8544(CLK,DIN,D/C,CE,RST);
+Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
+
+int rotatetext = 1;
+
+int ledPin = 2;
 int micSensor_level = A0; //analog gives real-time voltage signal
 int micSensor_intensity = 11; //digital gives LOW or HIGH sound intensity
 
@@ -63,18 +73,7 @@ enum BUZZER_STATES {BUZZER_START, BUZZER_OFF, BUZZER_ON};
 int TickFct_BUZZER(int state);
 
 void setup() {
-  // put your setup code here, to run once:
-  /*
-  pinMode(b0, OUTPUT);
-  pinMode(b1, OUTPUT);
-  pinMode(b2, OUTPUT);
-  pinMode(b3, OUTPUT);
-  pinMode(b4, OUTPUT);
-  pinMode(b5, OUTPUT);
-  pinMode(b6, OUTPUT);
-  pinMode(b7, OUTPUT);
-  */
-
+  
   pinMode(micSensor_level, INPUT);
   pinMode(micSensor_intensity, INPUT);
   pinMode(ledPin, OUTPUT);
@@ -99,49 +98,84 @@ void setup() {
   tasks[i].TickFct = &TickFct_BUZZER;
   i++;
 
+  //Initialize Display
+  display.begin();
 
-}
+  // you can change the contrast around to adapt the display for the best viewing!
+  display.setContrast(57);
 
-/*                
-void readData()
-{
-  if(Serial.available()){
-    a = Serial.parseInt();
+  // Clear the buffer.
+  display.clearDisplay();
+
+  // Display Text
+  display.setTextSize(1);
+  display.setTextColor(BLACK);
+  display.setCursor(0,0);
+  display.println("Hello world!");
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+
+  // Display Inverted Text
+  display.setTextColor(WHITE, BLACK); // 'inverted' text
+  display.setCursor(0,0);
+  display.println("Hello world!");
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+  // Scaling Font Size
+  display.setTextColor(BLACK);
+  display.setCursor(0,0);
+  display.setTextSize(2);
+  display.println("Hello!");
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+  // Display Numbers
+  display.setTextSize(1);
+  display.setCursor(0,0);
+  display.println(123456789);
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+  // Specifying Base For Numbers
+  display.setCursor(0,0);
+  display.print("0x"); display.print(0xFF, HEX); 
+  display.print("(HEX) = ");
+  display.print(0xFF, DEC);
+  display.println("(DEC)"); 
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+  // Display ASCII Characters
+  display.setCursor(0,0);
+  display.setTextSize(2);
+  display.write(3);
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+
+  // Text Rotation
+  while(1)
+  {
+  display.clearDisplay();
+  display.setRotation(rotatetext);  // rotate 90 degrees counter clockwise, can also use values of 2 and 3 to go further.
+  display.setTextSize(1);
+  display.setTextColor(BLACK);
+  display.setCursor(0,0);
+  display.println("Text Rotation");
+  display.display();
+  delay(1000);
+  display.clearDisplay();
+  rotatetext++;
   }
-  a7 = a >> 7;
-  a6 = (a >> 6) & 0x01;
-  a5 = (a >> 5) & 0x01;
-  a4 = (a >> 4) & 0x01;
-  a3 = (a >> 3) & 0x01;
-  a2 = (a >> 2) & 0x01;
-  a1 = (a >> 1) & 0x01;
-  a0 = (a >> 0) & 0x01;
+  
 }
-
-void resetB()
-{
-  digitalWrite(b7,LOW);
-  digitalWrite(b6,LOW);
-  digitalWrite(b5,LOW);
-  digitalWrite(b4,LOW);
-  digitalWrite(b3,LOW);
-  digitalWrite(b2,LOW);
-  digitalWrite(b1,LOW);
-  digitalWrite(b0,LOW);
-}
-
-void writeToB(unsigned char temp)
-{
-  if ((temp>>7) & 0x01){digitalWrite(b7,HIGH);}
-  if ((temp>>6) & 0x01){digitalWrite(b6,HIGH);}
-  if ((temp>>5) & 0x01){digitalWrite(b5,HIGH);}
-  if ((temp>>4) & 0x01){digitalWrite(b4,HIGH);}
-  if ((temp>>3) & 0x01){digitalWrite(b3,HIGH);}
-  if ((temp>>2) & 0x01){digitalWrite(b2,HIGH);}
-  if ((temp>>1) & 0x01){digitalWrite(b1,HIGH);}
-  if (temp & 0x01){digitalWrite(b0,HIGH);}
-}
-*/
 
 void loop() {
   unsigned char i;

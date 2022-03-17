@@ -29,7 +29,17 @@ int a = 0x00;
 int a0, a1, a2, a3, a4, a5, a6, a7;
 */
 
-int ledPin = 3;
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_PCD8544.h>
+
+// Declare LCD object for software SPI
+// Adafruit_PCD8544(CLK,DIN,D/C,CE,RST);
+Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
+
+int rotatetext = 1;
+
+int ledPin = 2;
 int micSensor_level = A0; //analog gives real-time voltage signal
 int micSensor_intensity = 11; //digital gives LOW or HIGH sound intensity
 
@@ -43,6 +53,8 @@ bool buzzer_threshold = false;
 bool intensityValue = false;
 int micLevel = 0;
 
+string nokiaDecibel; 
+
 typedef struct task {
   int state;
   unsigned long period;
@@ -50,7 +62,7 @@ typedef struct task {
   int (*TickFct)(int);
 } task;
 
-const unsigned short tasksNum = 3;
+const unsigned short tasksNum = 4;
 task tasks[tasksNum];
 
 enum MIC_States {MIC_START, MIC_CHECK} state;
@@ -61,6 +73,9 @@ int TickFct_LED(int state);
 
 enum BUZZER_STATES {BUZZER_START, BUZZER_OFF, BUZZER_ON};
 int TickFct_BUZZER(int state);
+
+enum NOKIA_STATES {NOKIA_START, NOKIA_DISPLAY};
+int TickFct_NOKIA(int state);
 
 void setup() {
   
@@ -87,7 +102,88 @@ void setup() {
   tasks[i].elapsedTime = 0;
   tasks[i].TickFct = &TickFct_BUZZER;
   i++;
+  tasks[i].state = NOKIA_START;
+  tasks[i].period = 200;
+  tasks[i].elapsedTime = 0;
+  tasks[i].TickFct = &TickFct_NOKIA;
+  i++;
 
+	//Initialize Display
+	display.begin();
+
+	// you can change the contrast around to adapt the display for the best viewing!
+	display.setContrast(57);
+
+	// Clear the buffer.
+	display.clearDisplay();
+
+	// Display Text
+	display.setTextSize(1);
+	display.setTextColor(BLACK);
+	display.setCursor(0,0);
+	display.println("Hello world!");
+	display.display();
+	delay(2000);
+	display.clearDisplay();
+
+
+	// Display Inverted Text
+	display.setTextColor(WHITE, BLACK); // 'inverted' text
+	display.setCursor(0,0);
+	display.println("Hello world!");
+	display.display();
+	delay(2000);
+	display.clearDisplay();
+
+	// Scaling Font Size
+	display.setTextColor(BLACK);
+	display.setCursor(0,0);
+	display.setTextSize(2);
+	display.println("Hello!");
+	display.display();
+	delay(2000);
+	display.clearDisplay();
+
+	// Display Numbers
+	display.setTextSize(1);
+	display.setCursor(0,0);
+	display.println(123456789);
+	display.display();
+	delay(2000);
+	display.clearDisplay();
+
+	// Specifying Base For Numbers
+	display.setCursor(0,0);
+	display.print("0x"); display.print(0xFF, HEX); 
+	display.print("(HEX) = ");
+	display.print(0xFF, DEC);
+	display.println("(DEC)"); 
+	display.display();
+	delay(2000);
+	display.clearDisplay();
+
+	// Display ASCII Characters
+	display.setCursor(0,0);
+	display.setTextSize(2);
+	display.write(3);
+	display.display();
+	delay(2000);
+	display.clearDisplay();
+
+	// Text Rotation
+	while(1)
+	{
+	display.clearDisplay();
+	display.setRotation(rotatetext);  // rotate 90 degrees counter clockwise, can also use values of 2 and 3 to go further.
+	display.setTextSize(1);
+	display.setTextColor(BLACK);
+	display.setCursor(0,0);
+	display.println("Text Rotation");
+	display.display();
+	delay(1000);
+	display.clearDisplay();
+	rotatetext++;
+	}
 
 }
 
@@ -263,6 +359,36 @@ int TickFct_BUZZER(int state) {
 
     case BUZZER_ON:
       tone(buzzer, 200);
+    break;
+    
+    default:
+      break;
+  }
+  return state;
+}
+
+int TickFct_NOKIA(int state) {
+  switch(state){ // Transition States
+    case NOKIA_START:
+        state = NOKIA_DISPLAY;
+    break;
+
+    case NOKIA_DISPLAY:
+
+    break;
+    
+    default:
+      break;
+  }
+
+
+  switch(state){ // Action States
+    case NOKIA_START:
+      
+    break;
+
+    case NOKIA_DISPLAY:
+      
     break;
     
     default:
